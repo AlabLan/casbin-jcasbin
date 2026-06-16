@@ -388,4 +388,19 @@ public class Util {
             return false;
         }
     }
+
+    /**
+     * setSubtract returns the elements in {@code a} that aren't in {@code b}.
+     * Preserves order from {@code a}.
+     */
+    public static List<String> setSubtract(List<String> a, List<String> b) {
+        Set<String> bSet = new HashSet<>(b);
+        List<String> result = new ArrayList<>();
+        for (String item : a) {
+            if (!bSet.contains(item)) {
+                result.add(item);
+            }
+        }
+        return result;
+    }
 }
