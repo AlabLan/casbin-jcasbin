@@ -16,6 +16,7 @@ package org.casbin.jcasbin.main;
 
 import com.googlecode.aviator.AviatorEvaluator;
 import com.googlecode.aviator.AviatorEvaluatorInstance;
+import org.casbin.jcasbin.util.Util;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -296,6 +297,40 @@ public class ManagementAPIUnitTest {
         enforcer.setAviatorEvaluator(instance);
         // then
         assertEquals(enforcer.getAviatorEval(), instance);
+    }
+
+    @Test
+    public void testGetAllUsers() {
+        // Basic RBAC: alice and bob are users, data2_admin is a role
+        Enforcer e = new Enforcer("examples/rbac_model.conf", "examples/rbac_policy.csv");
+        assertUserSet(e.getAllSubjects(), asList("alice", "bob", "data2_admin"));
+        assertUserSet(e.getAllRoles(), asList("data2_admin"));
+        assertUserSet(e.getAllUsers(), asList("alice", "bob"));
+
+        // Add a regular user who only appears in policy, not as a role target
+        e.addPolicy("eve", "data3", "read");
+        assertUserSet(e.getAllUsers(), asList("alice", "bob", "eve"));
+        e.removePolicy("eve", "data3", "read");
+
+        // A subject who is also a role target: admin is in p AND assigned to role "root" via g
+        // getAllUsers = subjects(p) - roles(g col 1); admin is not in g col 1, so it is a user
+        e.addPolicy("admin", "data1", "read");
+        e.addGroupingPolicy("admin", "root");
+        assertUserSet(e.getAllUsers(), asList("alice", "bob", "admin"));
+        e.removePolicy("admin", "data1", "read");
+        e.removeGroupingPolicy("admin", "root");
+
+        // After clearing all policies, everything should be empty
+        e.clearPolicy();
+        assertUserSet(e.getAllSubjects(), asList());
+        assertUserSet(e.getAllRoles(), asList());
+        assertUserSet(e.getAllUsers(), asList());
+    }
+
+    private void assertUserSet(List<String> actual, List<String> expected) {
+        if (!Util.setEquals(expected, actual)) {
+            Assert.fail("Expected: " + expected + ", got: " + actual);
+        }
     }
 
 }
